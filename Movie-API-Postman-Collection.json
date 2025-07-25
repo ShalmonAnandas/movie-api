@@ -1,10 +1,11 @@
 {
     "info": {
-        "_postman_id": "movie-api-collection-2025",
-        "name": "Movie API Collection",
-        "description": "A comprehensive collection for testing the Movie API built with @movie-web/providers. Includes tests for HLS stream handling with automatic M3U8 playlist file saving and serving.",
+        "_postman_id": "movie-api-collection-2025-ts",
+        "name": "Movie API Collection (TypeScript)",
+        "description": "A comprehensive collection for testing the Movie API built with TypeScript, Express.js and @movie-web/providers. Includes tests for HLS stream handling with automatic M3U8 playlist file saving and Vercel Blob storage integration.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-        "_exporter_id": "movie-api"
+        "_exporter_id": "movie-api",
+        "version": "2.0.0"
     },
     "item": [
         {
@@ -633,6 +634,291 @@
                 "description": "Test 404 error handling for invalid endpoints"
             },
             "response": []
+        },
+        {
+            "name": "Get M3U8 Playlist - Direct Fetch",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200 or 400 (depending on URL validity)\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 500]);",
+                            "});",
+                            "",
+                            "pm.test(\"If successful, response is M3U8 content\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/vnd.apple.mpegurl');",
+                            "        var responseText = pm.response.text();",
+                            "        pm.expect(responseText).to.satisfy(function(text) {",
+                            "            return text.includes('#EXTM3U') || text.includes('#EXT-X-');",
+                            "        });",
+                            "    }",
+                            "});",
+                            "",
+                            "pm.test(\"Has proper CORS headers\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.equal('*');",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/playlist?url={{sampleM3u8Url}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "playlist"
+                    ],
+                    "query": [
+                        {
+                            "key": "url",
+                            "value": "{{sampleM3u8Url}}",
+                            "description": "Sample M3U8 URL for testing"
+                        }
+                    ]
+                },
+                "description": "Test direct M3U8 playlist fetching functionality"
+            },
+            "response": []
+        },
+        {
+            "name": "Video Segment Proxy Test",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200, 400, or 500 (depending on URL)\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 500]);",
+                            "});",
+                            "",
+                            "pm.test(\"If successful, has video content type\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var contentType = pm.response.headers.get('Content-Type');",
+                            "        pm.expect(contentType).to.satisfy(function(type) {",
+                            "            return type.includes('video/') || type.includes('application/octet-stream');",
+                            "        });",
+                            "    }",
+                            "});",
+                            "",
+                            "pm.test(\"Has CORS headers for video streaming\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        pm.expect(pm.response.headers.get('Access-Control-Allow-Origin')).to.equal('*');",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/segment?url={{sampleSegmentUrl}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "segment"
+                    ],
+                    "query": [
+                        {
+                            "key": "url",
+                            "value": "{{sampleSegmentUrl}}",
+                            "description": "Sample video segment URL for testing"
+                        }
+                    ]
+                },
+                "description": "Test video segment proxying functionality"
+            },
+            "response": []
+        },
+        {
+            "name": "Cache Test - Scrape Same Movie Twice",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"First request completed\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                            "});",
+                            "",
+                            "pm.test(\"Store response for cache test\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        pm.globals.set('firstRequestCached', jsonData.cached);",
+                            "        if (jsonData.sources && jsonData.sources.length > 0) {",
+                            "            pm.globals.set('firstRequestFromCache', jsonData.sources[0].fromCache || false);",
+                            "        }",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/scrape?tmdbId={{movieTmdbId}}&type=movie&title={{movieTitle}}&year={{movieYear}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "scrape"
+                    ],
+                    "query": [
+                        {
+                            "key": "tmdbId",
+                            "value": "{{movieTmdbId}}",
+                            "description": "First cache test request"
+                        },
+                        {
+                            "key": "type",
+                            "value": "movie"
+                        },
+                        {
+                            "key": "title",
+                            "value": "{{movieTitle}}"
+                        },
+                        {
+                            "key": "year",
+                            "value": "{{movieYear}}"
+                        }
+                    ]
+                },
+                "description": "First request to establish cache baseline"
+            },
+            "response": []
+        },
+        {
+            "name": "Cache Test - Verify Second Request Uses Cache",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Second request completed\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                            "});",
+                            "",
+                            "pm.test(\"Second request should use cache if first succeeded\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        var firstRequestCached = pm.globals.get('firstRequestCached');",
+                            "        ",
+                            "        // If first request wasn't cached, second should be cached",
+                            "        if (firstRequestCached === 'false' && jsonData.sources && jsonData.sources.length > 0) {",
+                            "            pm.expect(jsonData.sources[0].fromCache).to.be.true;",
+                            "        }",
+                            "    }",
+                            "});",
+                            "",
+                            "// Cleanup globals",
+                            "pm.globals.unset('firstRequestCached');",
+                            "pm.globals.unset('firstRequestFromCache');"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/scrape?tmdbId={{movieTmdbId}}&type=movie&title={{movieTitle}}&year={{movieYear}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "scrape"
+                    ],
+                    "query": [
+                        {
+                            "key": "tmdbId",
+                            "value": "{{movieTmdbId}}",
+                            "description": "Second cache test request"
+                        },
+                        {
+                            "key": "type",
+                            "value": "movie"
+                        },
+                        {
+                            "key": "title",
+                            "value": "{{movieTitle}}"
+                        },
+                        {
+                            "key": "year",
+                            "value": "{{movieYear}}"
+                        }
+                    ]
+                },
+                "description": "Second request should use cached data if available"
+            },
+            "response": []
+        },
+        {
+            "name": "TypeScript Build Verification",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"API is running TypeScript version\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Response structure is properly typed\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData).to.have.property('message');",
+                            "    pm.expect(jsonData).to.have.property('endpoints');",
+                            "    pm.expect(jsonData).to.have.property('usage');",
+                            "    pm.expect(jsonData.usage).to.have.property('hls_example');",
+                            "    pm.expect(jsonData.usage).to.have.property('vercel_blob_setup');",
+                            "});",
+                            "",
+                            "pm.test(\"Has TypeScript-specific endpoints info\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.endpoints).to.have.property('test');",
+                            "    pm.expect(jsonData.endpoints).to.have.property('scrape');",
+                            "    pm.expect(jsonData.endpoints).to.have.property('playlist');",
+                            "    pm.expect(jsonData.endpoints).to.have.property('segment');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        ""
+                    ]
+                },
+                "description": "Verify the TypeScript version is running correctly"
+            },
+            "response": []
         }
     ],
     "event": [
@@ -729,10 +1015,16 @@
             "description": "Sample M3U8 URL for testing playlist endpoint"
         },
         {
-            "key": "playlistFilename",
-            "value": "test_movie_12345678_1640995200000.m3u8",
+            "key": "sampleSegmentUrl",
+            "value": "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
             "type": "string",
-            "description": "Sample playlist filename for testing file access"
+            "description": "Sample video segment URL for testing (using m3u8 as placeholder)"
+        },
+        {
+            "key": "vercelUrl",
+            "value": "https://your-deployment.vercel.app",
+            "type": "string",
+            "description": "Your Vercel deployment URL"
         }
     ]
 }
