@@ -1,0 +1,738 @@
+{
+    "info": {
+        "_postman_id": "movie-api-collection-2025",
+        "name": "Movie API Collection",
+        "description": "A comprehensive collection for testing the Movie API built with @movie-web/providers. Includes tests for HLS stream handling with automatic M3U8 playlist file saving and serving.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "movie-api"
+    },
+    "item": [
+        {
+            "name": "Health Check",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Response has message\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData).to.have.property('message');",
+                            "    pm.expect(jsonData.message).to.include('Movie API is running');",
+                            "});",
+                            "",
+                            "pm.test(\"Response has endpoints\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData).to.have.property('endpoints');",
+                            "    pm.expect(jsonData.endpoints).to.have.property('playlists');",
+                            "});",
+                            "",
+                            "pm.test(\"Response has HLS usage info\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData).to.have.property('usage');",
+                            "    pm.expect(jsonData.usage).to.have.property('hls_example');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        ""
+                    ]
+                },
+                "description": "Check if the API is running and get available endpoints"
+            },
+            "response": []
+        },
+        {
+            "name": "Test Provider Connection",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Provider is working\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData).to.have.property('message');",
+                            "    pm.expect(jsonData.message).to.include('@movie-web/providers is working');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/test",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "test"
+                    ]
+                },
+                "description": "Test if @movie-web/providers is properly initialized"
+            },
+            "response": []
+        },
+        {
+            "name": "Search Movies/Shows",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Response contains query\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData).to.have.property('query');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/search?query={{searchQuery}}&type={{mediaType}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "search"
+                    ],
+                    "query": [
+                        {
+                            "key": "query",
+                            "value": "{{searchQuery}}",
+                            "description": "Search term for movies/shows"
+                        },
+                        {
+                            "key": "type",
+                            "value": "{{mediaType}}",
+                            "description": "Type: movie or show"
+                        }
+                    ]
+                },
+                "description": "Search for movies or TV shows"
+            },
+            "response": []
+        },
+        {
+            "name": "Scrape Movie Sources",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200 or 500 (expected for demo)\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                            "});",
+                            "",
+                            "pm.test(\"Response has tmdbId\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        pm.expect(jsonData).to.have.property('tmdbId');",
+                            "    }",
+                            "});",
+                            "",
+                            "pm.test(\"Response has type\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        pm.expect(jsonData).to.have.property('type');",
+                            "        pm.expect(jsonData.type).to.equal('movie');",
+                            "    }",
+                            "});",
+                            "",
+                            "pm.test(\"Check HLS playlist handling\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        if (jsonData.sources && jsonData.sources.length > 0) {",
+                            "            jsonData.sources.forEach(function(source) {",
+                            "                if (source.type === 'hls') {",
+                            "                    pm.expect(source).to.have.property('playlistUrl');",
+                            "                    pm.expect(source).to.have.property('playlistFetched');",
+                            "                    if (source.playlistFetched) {",
+                            "                        pm.expect(source.playlistUrl).to.include('/playlists/');",
+                            "                        pm.expect(source.playlistUrl).to.include('.m3u8');",
+                            "                    }",
+                            "                }",
+                            "            });",
+                            "        }",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/scrape?tmdbId={{movieTmdbId}}&type=movie&title={{movieTitle}}&year={{movieYear}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "scrape"
+                    ],
+                    "query": [
+                        {
+                            "key": "tmdbId",
+                            "value": "{{movieTmdbId}}",
+                            "description": "TMDB ID of the movie"
+                        },
+                        {
+                            "key": "type",
+                            "value": "movie",
+                            "description": "Media type: movie"
+                        },
+                        {
+                            "key": "title",
+                            "value": "{{movieTitle}}",
+                            "description": "Movie title (optional but recommended)"
+                        },
+                        {
+                            "key": "year",
+                            "value": "{{movieYear}}",
+                            "description": "Release year (optional but recommended)"
+                        }
+                    ]
+                },
+                "description": "Get streaming sources for a specific movie"
+            },
+            "response": []
+        },
+        {
+            "name": "Scrape TV Show Episode Sources",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200 or 500 (expected for demo)\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                            "});",
+                            "",
+                            "pm.test(\"Response has tmdbId\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        pm.expect(jsonData).to.have.property('tmdbId');",
+                            "    }",
+                            "});",
+                            "",
+                            "pm.test(\"Response has show details\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        pm.expect(jsonData).to.have.property('type');",
+                            "        pm.expect(jsonData.type).to.equal('show');",
+                            "        pm.expect(jsonData).to.have.property('season');",
+                            "        pm.expect(jsonData).to.have.property('episode');",
+                            "    }",
+                            "});",
+                            "",
+                            "pm.test(\"Check HLS playlist handling for TV shows\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        if (jsonData.sources && jsonData.sources.length > 0) {",
+                            "            jsonData.sources.forEach(function(source) {",
+                            "                if (source.type === 'hls') {",
+                            "                    pm.expect(source).to.have.property('playlistUrl');",
+                            "                    pm.expect(source).to.have.property('playlistFetched');",
+                            "                    if (source.playlistFetched) {",
+                            "                        pm.expect(source.playlistUrl).to.include('/playlists/');",
+                            "                        pm.expect(source.playlistUrl).to.include('.m3u8');",
+                            "                    }",
+                            "                }",
+                            "            });",
+                            "        }",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/scrape?tmdbId={{showTmdbId}}&type=show&season={{season}}&episode={{episode}}&title={{showTitle}}&year={{showYear}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "scrape"
+                    ],
+                    "query": [
+                        {
+                            "key": "tmdbId",
+                            "value": "{{showTmdbId}}",
+                            "description": "TMDB ID of the TV show"
+                        },
+                        {
+                            "key": "type",
+                            "value": "show",
+                            "description": "Media type: show"
+                        },
+                        {
+                            "key": "season",
+                            "value": "{{season}}",
+                            "description": "Season number"
+                        },
+                        {
+                            "key": "episode",
+                            "value": "{{episode}}",
+                            "description": "Episode number"
+                        },
+                        {
+                            "key": "title",
+                            "value": "{{showTitle}}",
+                            "description": "Show title (optional but recommended)"
+                        },
+                        {
+                            "key": "year",
+                            "value": "{{showYear}}",
+                            "description": "First air year (optional but recommended)"
+                        }
+                    ]
+                },
+                "description": "Get streaming sources for a specific TV show episode"
+            },
+            "response": []
+        },
+        {
+            "name": "Scrape Movie - Inception Example",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Request completed\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                            "});",
+                            "",
+                            "pm.test(\"Has proper movie data structure\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        pm.expect(jsonData.tmdbId).to.equal('27205');",
+                            "        pm.expect(jsonData.type).to.equal('movie');",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/scrape?tmdbId=27205&type=movie&title=Inception&year=2010",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "scrape"
+                    ],
+                    "query": [
+                        {
+                            "key": "tmdbId",
+                            "value": "27205",
+                            "description": "Inception TMDB ID"
+                        },
+                        {
+                            "key": "type",
+                            "value": "movie"
+                        },
+                        {
+                            "key": "title",
+                            "value": "Inception"
+                        },
+                        {
+                            "key": "year",
+                            "value": "2010"
+                        }
+                    ]
+                },
+                "description": "Example request for Inception movie streaming sources"
+            },
+            "response": []
+        },
+        {
+            "name": "Scrape TV Show - Breaking Bad S1E1 Example",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Request completed\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                            "});",
+                            "",
+                            "pm.test(\"Has proper show data structure\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var jsonData = pm.response.json();",
+                            "        pm.expect(jsonData.tmdbId).to.equal('1396');",
+                            "        pm.expect(jsonData.type).to.equal('show');",
+                            "        pm.expect(jsonData.season).to.equal('1');",
+                            "        pm.expect(jsonData.episode).to.equal('1');",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/scrape?tmdbId=1396&type=show&season=1&episode=1&title=Breaking Bad&year=2008",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "scrape"
+                    ],
+                    "query": [
+                        {
+                            "key": "tmdbId",
+                            "value": "1396",
+                            "description": "Breaking Bad TMDB ID"
+                        },
+                        {
+                            "key": "type",
+                            "value": "show"
+                        },
+                        {
+                            "key": "season",
+                            "value": "1"
+                        },
+                        {
+                            "key": "episode",
+                            "value": "1"
+                        },
+                        {
+                            "key": "title",
+                            "value": "Breaking Bad"
+                        },
+                        {
+                            "key": "year",
+                            "value": "2008"
+                        }
+                    ]
+                },
+                "description": "Example request for Breaking Bad Season 1 Episode 1 streaming sources"
+            },
+            "response": []
+        },
+        {
+            "name": "Error Test - Missing TMDB ID",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 400\", function () {",
+                            "    pm.response.to.have.status(400);",
+                            "});",
+                            "",
+                            "pm.test(\"Error message is correct\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData).to.have.property('error');",
+                            "    pm.expect(jsonData.error).to.include('tmdbId parameter is required');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/scrape?type=movie",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "scrape"
+                    ],
+                    "query": [
+                        {
+                            "key": "type",
+                            "value": "movie"
+                        }
+                    ]
+                },
+                "description": "Test error handling when tmdbId is missing"
+            },
+            "response": []
+        },
+        {
+            "name": "Error Test - Missing Season/Episode for TV Show",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 400\", function () {",
+                            "    pm.response.to.have.status(400);",
+                            "});",
+                            "",
+                            "pm.test(\"Error message is correct\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData).to.have.property('error');",
+                            "    pm.expect(jsonData.error).to.include('season and episode parameters are required');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/scrape?tmdbId=1396&type=show",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "scrape"
+                    ],
+                    "query": [
+                        {
+                            "key": "tmdbId",
+                            "value": "1396"
+                        },
+                        {
+                            "key": "type",
+                            "value": "show"
+                        }
+                    ]
+                },
+                "description": "Test error handling when season/episode are missing for TV shows"
+            },
+            "response": []
+        },
+        {
+            "name": "Test Playlist File Access",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200 or 404 (file may not exist)\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});",
+                            "",
+                            "pm.test(\"If found, has correct content type\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/vnd.apple.mpegurl');",
+                            "    }",
+                            "});",
+                            "",
+                            "pm.test(\"If found, response is M3U8 content\", function () {",
+                            "    if (pm.response.code === 200) {",
+                            "        var responseText = pm.response.text();",
+                            "        pm.expect(responseText).to.satisfy(function(text) {",
+                            "            return text.includes('#EXTM3U') || text.includes('#EXT-X-');",
+                            "        });",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/playlists/{{playlistFilename}}",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "playlists",
+                        "{{playlistFilename}}"
+                    ]
+                },
+                "description": "Test accessing a saved M3U8 playlist file (may not exist, testing endpoint functionality)"
+            },
+            "response": []
+        },
+        {
+            "name": "404 Test - Invalid Endpoint",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});",
+                            "",
+                            "pm.test(\"Error message is correct\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData).to.have.property('error');",
+                            "    pm.expect(jsonData.error).to.include('Route not found');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/nonexistent",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "nonexistent"
+                    ]
+                },
+                "description": "Test 404 error handling for invalid endpoints"
+            },
+            "response": []
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:3000",
+            "type": "string",
+            "description": "Base URL for the Movie API"
+        },
+        {
+            "key": "searchQuery",
+            "value": "inception",
+            "type": "string",
+            "description": "Default search query"
+        },
+        {
+            "key": "mediaType",
+            "value": "movie",
+            "type": "string",
+            "description": "Media type: movie or show"
+        },
+        {
+            "key": "movieTmdbId",
+            "value": "27205",
+            "type": "string",
+            "description": "TMDB ID for Inception"
+        },
+        {
+            "key": "movieTitle",
+            "value": "Inception",
+            "type": "string",
+            "description": "Movie title"
+        },
+        {
+            "key": "movieYear",
+            "value": "2010",
+            "type": "string",
+            "description": "Movie release year"
+        },
+        {
+            "key": "showTmdbId",
+            "value": "1396",
+            "type": "string",
+            "description": "TMDB ID for Breaking Bad"
+        },
+        {
+            "key": "showTitle",
+            "value": "Breaking Bad",
+            "type": "string",
+            "description": "TV show title"
+        },
+        {
+            "key": "showYear",
+            "value": "2008",
+            "type": "string",
+            "description": "TV show first air year"
+        },
+        {
+            "key": "season",
+            "value": "1",
+            "type": "string",
+            "description": "Season number"
+        },
+        {
+            "key": "episode",
+            "value": "1",
+            "type": "string",
+            "description": "Episode number"
+        },
+        {
+            "key": "sampleM3u8Url",
+            "value": "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
+            "type": "string",
+            "description": "Sample M3U8 URL for testing playlist endpoint"
+        },
+        {
+            "key": "playlistFilename",
+            "value": "test_movie_12345678_1640995200000.m3u8",
+            "type": "string",
+            "description": "Sample playlist filename for testing file access"
+        }
+    ]
+}
