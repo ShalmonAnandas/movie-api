@@ -23,11 +23,8 @@ if (isVercelBlobEnabled) {
     console.log('Vercel Blob not configured - will use local storage for development');
 }
 
-// Create playlists directory if it doesn't exist (fallback for local development)
+// Define playlists directory path for local development
 const playlistsDir = path.join(__dirname, 'playlists');
-if (!fs.existsSync(playlistsDir)) {
-    fs.mkdirSync(playlistsDir, { recursive: true });
-}
 
 // Initialize @movie-web/providers
 const myFetcher = makeStandardFetcher(fetch);
@@ -99,7 +96,7 @@ async function cleanupOldBlobFiles() {
 
         if (filesToDelete.length > 0) {
             console.log(`Cleaning up ${filesToDelete.length} old blob files...`);
-            
+
             for (const blob of filesToDelete) {
                 await del(blob.url);
                 console.log(`Deleted old blob: ${blob.pathname}`);
@@ -185,16 +182,18 @@ app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static playlist files
-app.use('/playlists', express.static(playlistsDir, {
-    setHeaders: (res, path) => {
-        if (path.endsWith('.m3u8')) {
-            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-            res.setHeader('Access-Control-Allow-Origin', '*');
-            res.setHeader('Cache-Control', 'no-cache');
+// Serve static playlist files (only for local development when not using Vercel Blob)
+if (!isVercelBlobEnabled) {
+    app.use('/playlists', express.static(playlistsDir, {
+        setHeaders: (res, path) => {
+            if (path.endsWith('.m3u8')) {
+                res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Cache-Control', 'no-cache');
+            }
         }
-    }
-}));
+    }));
+}
 
 // Routes
 app.get('/', (req, res) => {
